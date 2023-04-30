@@ -2,76 +2,76 @@ package cmd
 
 import (
 	"os"
-  "strings"
+	"strings"
 
+	"github.com/retpolanne/whiterabbit/pkg"
 	"github.com/spf13/cobra"
-  "github.com/retpolanne/whiterabbit/pkg"
 )
 
 func callTrack(cmd *cobra.Command, args []string) {
-  reason := ""
-  if len(args) > 0 {
-    reason = strings.Join(args, " ")
-  }
-  err := pkg.Track(cmd.Use, reason)
-  if err != nil {
-    os.Exit(1)
-  }
-} 
+	reason := ""
+	if len(args) > 0 {
+		reason = strings.Join(args, " ")
+	}
+	err := pkg.Track(cmd.Use, reason)
+	if err != nil {
+		os.Exit(1)
+	}
+}
 
 func callCalc(cmd *cobra.Command, args []string) {
-  err := pkg.Calculate()
-  if err != nil {
-    os.Exit(1)
-  }
-} 
+	err := pkg.Calculate()
+	if err != nil {
+		os.Exit(1)
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "whiterabbit",
 	Short: "A simple time tracker",
-	Long: `This app helps you track the time you spend working`,
+	Long:  `This app helps you track the time you spend working`,
 }
 
 // Commands
 
 var goodmorningCmd = &cobra.Command{
 	Use:     "goodmorning",
-  Aliases: []string{"gm"},
+	Aliases: []string{"gm"},
 	Short:   "tracks when you start your day",
-	Run: callTrack,
+	Run:     callTrack,
 }
 
 var lunchbreakCmd = &cobra.Command{
 	Use:   "lunchbreak",
 	Short: "tracks when you stop for lunch",
-	Run: callTrack,
+	Run:   callTrack,
 }
 
 var brbCmd = &cobra.Command{
 	Use:   "brb",
 	Short: "tracks when you go out for an appointment or for commuting",
-	Run: callTrack,
+	Run:   callTrack,
 }
 
 var backCmd = &cobra.Command{
 	Use:   "back",
 	Short: "tracks when you are back from an appointment or commuting",
-	Run: callTrack,
+	Run:   callTrack,
 }
 
 var goodnightCmd = &cobra.Command{
 	Use:     "goodnight",
-  Aliases: []string{"gn"},
+	Aliases: []string{"gn"},
 	Short:   "tracks when you end your day",
-	Run: callTrack,
+	Run:     callTrack,
 }
 
 var calculateCmd = &cobra.Command{
 	Use:     "calculate",
-  Aliases: []string{"calc"},
+	Aliases: []string{"calc"},
 	Short:   "calculates time tracked",
-	Run: callCalc,
+	Run:     callCalc,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -100,5 +100,3 @@ func init() {
 	rootCmd.AddCommand(goodnightCmd)
 	rootCmd.AddCommand(calculateCmd)
 }
-
-
