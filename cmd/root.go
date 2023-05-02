@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/retpolanne/whiterabbit/pkg"
 	"github.com/spf13/cobra"
@@ -20,9 +23,15 @@ func callTrack(cmd *cobra.Command, args []string) {
 }
 
 func callCalc(cmd *cobra.Command, args []string) {
-	err := pkg.Calculate()
-	if err != nil {
-		os.Exit(1)
+	today, _ := cmd.Flags().GetBool("today")
+	yesterday, _ := cmd.Flags().GetBool("yesterday")
+	weekdays, _ := cmd.Flags().GetBool("weekdays")
+	if today {
+		diff, err := pkg.Calculate(true, false, false, time.Now(), "")
+		if err != nil {
+			log.Fatalf("Got the following error trying to calculate worked hours: %v", err)
+		}
+		fmt.Printf("Today you have worked %v – with 1 hour of lunchbreak\n", *diff)
 	}
 }
 
@@ -98,5 +107,8 @@ func init() {
 	rootCmd.AddCommand(brbCmd)
 	rootCmd.AddCommand(backCmd)
 	rootCmd.AddCommand(goodnightCmd)
+	calculateCmd.Flags().BoolP("today", "t", true, "calculate worked hours today")
+	calculateCmd.Flags().BoolP("yesterday", "y", false, "calculate worked hours yesterday")
+	calculateCmd.Flags().BoolP("weekdays", "w", false, "calculate worked hours throughout the week")
 	rootCmd.AddCommand(calculateCmd)
 }
