@@ -106,5 +106,10 @@ func Calculate(today, yesterday, weekdays bool, now time.Time, filepath string) 
 		diff, err = calculateDay(records, yt, mt, dt)
 		return diff, nil
 	}
+	if yesterday {
+		yt, mt, dt := now.AddDate(0, 0, -1).Date()
+		diff, err = calculateDay(records, yt, mt, dt)
+		return diff, nil
+	}
 	return nil, err
 }
