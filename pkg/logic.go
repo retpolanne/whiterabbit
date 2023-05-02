@@ -64,7 +64,9 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 			return nil, err
 		}
 		yr, mr, dr := datetime.Date()
+		//fmt.Printf("%v, %v, %v - %v, %v, %v\n", y, m, d, yr, mr, dr)
 		if y == yr && m == mr && d == dr {
+			fmt.Printf("records: %v\n", records[i][1])
 			switch records[i][1] {
 			case "goodmorning":
 				todayTime.goodmorning = datetime
@@ -73,12 +75,19 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 			case "brb":
 				todayTime.brb = append(todayTime.brb, datetime)
 			case "back":
-				todayTime.back = append(todayTime.brb, datetime)
+				todayTime.back = append(todayTime.back, datetime)
 			}
 		}
 	}
 	// TODO: parametrise lunchbreak
 	diffRet := todayTime.goodnight.Sub(todayTime.goodmorning) - time.Hour
+	var brbDiffs []time.Duration
+	for i := range todayTime.brb {
+		brbDiffs = append(brbDiffs, todayTime.back[i].Sub(todayTime.brb[i]))
+	}
+	for i := range brbDiffs {
+		diffRet = diffRet - brbDiffs[i]
+	}
 	return &diffRet, nil
 }
 

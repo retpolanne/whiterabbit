@@ -24,8 +24,8 @@ func callTrack(cmd *cobra.Command, args []string) {
 
 func callCalc(cmd *cobra.Command, args []string) {
 	today, _ := cmd.Flags().GetBool("today")
-	yesterday, _ := cmd.Flags().GetBool("yesterday")
-	weekdays, _ := cmd.Flags().GetBool("weekdays")
+	//yesterday, _ := cmd.Flags().GetBool("yesterday")
+	//weekdays, _ := cmd.Flags().GetBool("weekdays")
 	if today {
 		diff, err := pkg.Calculate(true, false, false, time.Now(), "")
 		if err != nil {
