@@ -206,7 +206,6 @@ func TestCalculateTimesheet(t *testing.T) {
 		"0h0m0s",
 		"0h0m0s",
 	}
-	/*
 	expectedBreaksDurationStrings := []string{
 		"0h0m0s",
 		"0h0m0s",
@@ -215,18 +214,18 @@ func TestCalculateTimesheet(t *testing.T) {
 		"01h0m0s",
 		"0h0m0s",
 		"0h0m0s",
-	}*/
+	}
 
 	for i := 0; i < 7; i++ {
 		expectedWorkedDuration, err := time.ParseDuration(expectedWorkedDurationStrings[i])
 		if err != nil {
 			log.Fatalf("[Error] T - Got the following error parsing worked duration: %s\n", err)
 		}
-		//expectedBreakDuration, err := time.ParseDuration(expectedBreaksDurationStrings[i])
+		expectedBreakDuration, err := time.ParseDuration(expectedBreaksDurationStrings[i])
 		if err != nil {
 			log.Fatalf("[Error] T - Got the following error parsing break duration: %s\n", err)
 		}
 		assert.Equal(t, expectedWorkedDuration, timesheet.WorkedHours[i])
-		//assert.Equal(t, expectedBreakDuration, timesheet.Breaks[i])
+		assert.Equal(t, expectedBreakDuration, timesheet.Breaks[i])
 	}
 }

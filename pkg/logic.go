@@ -57,7 +57,7 @@ func Track(command string, reason string) error {
 	return nil
 }
 
-func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Duration, err error) {
+func calculateDay(records [][]string, y int, m time.Month, d int) (diff, brbDiff *time.Duration, err error) {
 	// TODO return total breaks
 	diffRet, err := time.ParseDuration("0h0m0s")
 	todayTime := &structuredTimes{}
@@ -65,7 +65,7 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 		datetime, err := time.Parse(time.RFC1123, records[i][0])
 		if err != nil {
 			fmt.Printf("Got the following error trying to parse the date of record index %d: %s\n", i, err)
-			return nil, err
+			return nil, nil, err
 		}
 		yr, mr, dr := datetime.Date()
 		if y == yr && m == mr && d == dr {
@@ -85,22 +85,28 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 			}
 		}
 	}
-	// TODO: parametrise lunchbreak
+	lunchbreakDiff, _ := time.ParseDuration("0h0m0s")
+	totalBrbDiffs, _ := time.ParseDuration("0h0m0s")
 	if !todayTime.goodmorning.IsZero() && !todayTime.goodnight.IsZero() {
+		// TODO: parametrise lunchbreak
+		lunchbreakDefaultDiff, _ := time.ParseDuration("1h0m0s")
 		if !todayTime.lunchbreak.IsZero() {
-			diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - todayTime.lunchback.Sub(todayTime.lunchbreak)
-		} else {
-			diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - time.Hour
+			fmt.Printf("todaytime lunchbreak: %v\n", todayTime.lunchbreak)
+			lunchbreakDiff = todayTime.lunchback.Sub(todayTime.lunchbreak) - lunchbreakDefaultDiff
+			fmt.Printf("lunchbreakDiff %v\n", lunchbreakDiff)
 		}
+		diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - lunchbreakDefaultDiff
+		var brbDiffs []time.Duration
+		for i := range todayTime.brb {
+			brbDiffs = append(brbDiffs, todayTime.back[i].Sub(todayTime.brb[i]))
+		}
+		for i := range brbDiffs {
+			totalBrbDiffs += brbDiffs[i]
+		}
+		totalBrbDiffs += lunchbreakDiff
+		diffRet = diffRet - totalBrbDiffs
 	}
-	var brbDiffs []time.Duration
-	for i := range todayTime.brb {
-		brbDiffs = append(brbDiffs, todayTime.back[i].Sub(todayTime.brb[i]))
-	}
-	for i := range brbDiffs {
-		diffRet = diffRet - brbDiffs[i]
-	}
-	return &diffRet, nil
+	return &diffRet, &totalBrbDiffs, nil
 }
 
 func Calculate(today, yesterday bool, now time.Time, filepath string) (diff *time.Duration, err error) {
@@ -118,15 +124,14 @@ func Calculate(today, yesterday bool, now time.Time, filepath string) (diff *tim
 		return nil, err
 	}
 
-	// TODO: calculate longer/short lunchbreaks
 	if today {
 		yt, mt, dt := now.Date()
-		diff, err = calculateDay(records, yt, mt, dt)
+		diff, _, err = calculateDay(records, yt, mt, dt)
 		return diff, err
 	}
 	if yesterday {
 		yt, mt, dt := now.AddDate(0, 0, -1).Date()
-		diff, err = calculateDay(records, yt, mt, dt)
+		diff, _, err = calculateDay(records, yt, mt, dt)
 		return diff, err
 	}
 	return nil, err
@@ -165,13 +170,13 @@ func CalculateTimesheet(now time.Time, filepath string) (*Timesheet, error) {
 	dayIndex := 0
 	for i := firstDay; i.After(lastDay) == false; i = i.AddDate(0, 0, 1) {
 		yt, mt, dt := i.Date()
-		diff, err := calculateDay(records, yt, mt, dt)
-		fmt.Printf("Diff for day %v - %v\n", i, diff)
+		diff, brbDiff, err := calculateDay(records, yt, mt, dt)
 		if err != nil {
 			fmt.Printf("Got the following error calculating day: %s\n", err)
 			return nil, err
 		}
 		timesheet.WorkedHours = append(timesheet.WorkedHours, *diff)
+		timesheet.Breaks = append(timesheet.Breaks, *brbDiff)
 		dayIndex++
 	}
 	return &timesheet, nil
