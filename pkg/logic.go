@@ -106,9 +106,6 @@ func Calculate(today, yesterday, weekdays bool, now time.Time, filepath string) 
 		return nil, err
 	}
 
-	// Iterate through records for today
-	// TODO: add yesterday and workweek
-	// TODO: add yesterday and workweek flags to cmd
 	// TODO: calculate longer/short lunchbreaks
 	if today {
 		yt, mt, dt := now.Date()
@@ -119,6 +116,11 @@ func Calculate(today, yesterday, weekdays bool, now time.Time, filepath string) 
 		yt, mt, dt := now.AddDate(0, 0, -1).Date()
 		diff, err = calculateDay(records, yt, mt, dt)
 		return diff, nil
+	}
+	if weekdays {
+		curWeekday := now.Weekday()
+		dayOffset := curWeekday - time.Monday
+		fmt.Printf("Day offset %v\n", dayOffset)
 	}
 	return nil, err
 }

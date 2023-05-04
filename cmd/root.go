@@ -24,14 +24,28 @@ func callTrack(cmd *cobra.Command, args []string) {
 
 func callCalc(cmd *cobra.Command, args []string) {
 	today, _ := cmd.Flags().GetBool("today")
-	//yesterday, _ := cmd.Flags().GetBool("yesterday")
-	//weekdays, _ := cmd.Flags().GetBool("weekdays")
+	yesterday, _ := cmd.Flags().GetBool("yesterday")
+	weekdays, _ := cmd.Flags().GetBool("weekdays")
 	if today {
 		diff, err := pkg.Calculate(true, false, false, time.Now(), "")
 		if err != nil {
 			log.Fatalf("Got the following error trying to calculate worked hours: %v", err)
 		}
 		fmt.Printf("Today you have worked %v – with 1 hour of lunchbreak\n", *diff)
+	}
+	if yesterday {
+		diff, err := pkg.Calculate(false, true, false, time.Now(), "")
+		if err != nil {
+			log.Fatalf("Got the following error trying to calculate worked hours: %v", err)
+		}
+		fmt.Printf("Yesterday you have worked %v – with 1 hour of lunchbreak\n", *diff)
+	}
+	if weekdays {
+		diff, err := pkg.Calculate(false, false, true, time.Now(), "")
+		if err != nil {
+			log.Fatalf("Got the following error trying to calculate worked hours: %v", err)
+		}
+		fmt.Printf("This week you have worked %v – with 1 hour of lunchbreak\n", *diff)
 	}
 }
 

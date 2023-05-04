@@ -144,3 +144,24 @@ func TestCalculateYesterdayWithBreaks(t *testing.T) {
 	}
 	assert.Equal(t, expectedDuration, *diff)
 }
+
+func TestCalculateWholeWeek(t *testing.T) {
+	// Mock today as Thursday, 4 May 2023
+	datetime, err := time.Parse(time.RFC1123, "Thu, 04 May 2023 10:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
+	}
+	diff, err := Calculate(false, false, true, datetime, cwd)
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying calculate week: %s\n", err)
+	}
+	expectedDuration, err := time.ParseDuration("30h0m0s")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error parsing duration: %s\n", err)
+	}
+	assert.Equal(t, expectedDuration, *diff)
+}
