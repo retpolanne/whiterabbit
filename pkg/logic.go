@@ -12,6 +12,8 @@ import (
 type structuredTimes struct {
 	goodmorning time.Time
 	goodnight   time.Time
+	lunchbreak  time.Time
+	lunchback   time.Time
 	brb         []time.Time
 	back        []time.Time
 }
@@ -56,6 +58,8 @@ func Track(command string, reason string) error {
 }
 
 func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Duration, err error) {
+	// TODO return total breaks
+	diffRet, err := time.ParseDuration("0h0m0s")
 	todayTime := &structuredTimes{}
 	for i := range records {
 		datetime, err := time.Parse(time.RFC1123, records[i][0])
@@ -64,14 +68,16 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 			return nil, err
 		}
 		yr, mr, dr := datetime.Date()
-		//fmt.Printf("%v, %v, %v - %v, %v, %v\n", y, m, d, yr, mr, dr)
 		if y == yr && m == mr && d == dr {
-			fmt.Printf("records: %v\n", records[i][1])
 			switch records[i][1] {
 			case "goodmorning":
 				todayTime.goodmorning = datetime
 			case "goodnight":
 				todayTime.goodnight = datetime
+			case "lunchbreak":
+				todayTime.lunchbreak = datetime
+			case "lunchback":
+				todayTime.lunchback = datetime
 			case "brb":
 				todayTime.brb = append(todayTime.brb, datetime)
 			case "back":
@@ -80,7 +86,13 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 		}
 	}
 	// TODO: parametrise lunchbreak
-	diffRet := todayTime.goodnight.Sub(todayTime.goodmorning) - time.Hour
+	if !todayTime.goodmorning.IsZero() && !todayTime.goodnight.IsZero() {
+		if !todayTime.lunchbreak.IsZero() {
+			diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - todayTime.lunchback.Sub(todayTime.lunchbreak)
+		} else {
+			diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - time.Hour
+		}
+	}
 	var brbDiffs []time.Duration
 	for i := range todayTime.brb {
 		brbDiffs = append(brbDiffs, todayTime.back[i].Sub(todayTime.brb[i]))
@@ -91,7 +103,7 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff *time.Du
 	return &diffRet, nil
 }
 
-func Calculate(today, yesterday, weekdays bool, now time.Time, filepath string) (diff *time.Duration, err error) {
+func Calculate(today, yesterday bool, now time.Time, filepath string) (diff *time.Duration, err error) {
 	fd, err := openFile(os.O_RDONLY, filepath)
 	defer fd.Close()
 	if err != nil {
@@ -110,17 +122,57 @@ func Calculate(today, yesterday, weekdays bool, now time.Time, filepath string) 
 	if today {
 		yt, mt, dt := now.Date()
 		diff, err = calculateDay(records, yt, mt, dt)
-		return diff, nil
+		return diff, err
 	}
 	if yesterday {
 		yt, mt, dt := now.AddDate(0, 0, -1).Date()
 		diff, err = calculateDay(records, yt, mt, dt)
-		return diff, nil
-	}
-	if weekdays {
-		curWeekday := now.Weekday()
-		dayOffset := curWeekday - time.Monday
-		fmt.Printf("Day offset %v\n", dayOffset)
+		return diff, err
 	}
 	return nil, err
+}
+
+type Timesheet struct {
+	WorkedHours []time.Duration
+	Breaks      []time.Duration
+}
+
+func CalculateFirstLastDayOfWeek(now time.Time) (firstDay, lastDay time.Time) {
+	firstDayOfWeekOffset := now.Weekday() - time.Sunday
+	lastDayOfWeekOffset := now.Weekday() - time.Saturday
+	firstDayOfWeek := now.AddDate(0, 0, -int(firstDayOfWeekOffset))
+	lastDayOfWeek := now.AddDate(0, 0, -int(lastDayOfWeekOffset))
+	return firstDayOfWeek, lastDayOfWeek
+}
+
+func CalculateTimesheet(now time.Time, filepath string) (*Timesheet, error) {
+	var timesheet Timesheet
+	fd, err := openFile(os.O_RDONLY, filepath)
+	defer fd.Close()
+	if err != nil {
+		fmt.Printf("Got the following error trying to open file: %s\n", err)
+		return nil, err
+	}
+	fmt.Println("Opened file $HOME/whiterabbit.csv")
+
+	records, err := csv.NewReader(fd).ReadAll()
+	if err != nil {
+		fmt.Printf("Got the following error reading the csv file: %s\n", err)
+		return nil, err
+	}
+
+	firstDay, lastDay := CalculateFirstLastDayOfWeek(now)
+	dayIndex := 0
+	for i := firstDay; i.After(lastDay) == false; i = i.AddDate(0, 0, 1) {
+		yt, mt, dt := i.Date()
+		diff, err := calculateDay(records, yt, mt, dt)
+		fmt.Printf("Diff for day %v - %v\n", i, diff)
+		if err != nil {
+			fmt.Printf("Got the following error calculating day: %s\n", err)
+			return nil, err
+		}
+		timesheet.WorkedHours = append(timesheet.WorkedHours, *diff)
+		dayIndex++
+	}
+	return &timesheet, nil
 }

@@ -71,7 +71,7 @@ func TestCalculateTodayNoBreaks(t *testing.T) {
 	if err != nil {
 		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
 	}
-	diff, err := Calculate(true, false, false, datetime, cwd)
+	diff, err := Calculate(true, false, datetime, cwd)
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
 	}
@@ -92,7 +92,7 @@ func TestCalculateYesterdayNoBreaks(t *testing.T) {
 	if err != nil {
 		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
 	}
-	diff, err := Calculate(false, true, false, datetime, cwd)
+	diff, err := Calculate(false, true, datetime, cwd)
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
 	}
@@ -113,7 +113,7 @@ func TestCalculateTodayWithBreaks(t *testing.T) {
 	if err != nil {
 		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
 	}
-	diff, err := Calculate(true, false, false, datetime, cwd)
+	diff, err := Calculate(true, false, datetime, cwd)
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
 	}
@@ -134,7 +134,7 @@ func TestCalculateYesterdayWithBreaks(t *testing.T) {
 	if err != nil {
 		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
 	}
-	diff, err := Calculate(false, true, false, datetime, cwd)
+	diff, err := Calculate(false, true, datetime, cwd)
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
 	}
@@ -145,7 +145,45 @@ func TestCalculateYesterdayWithBreaks(t *testing.T) {
 	assert.Equal(t, expectedDuration, *diff)
 }
 
-func TestCalculateWholeWeek(t *testing.T) {
+func TestCalculateTodayWithLongLunch(t *testing.T) {
+	// Mock today as thursday, 4 May 2023
+	datetime, err := time.Parse(time.RFC1123, "Thu, 04 May 2023 10:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
+	}
+	diff, err := Calculate(true, false, datetime, cwd)
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
+	}
+	expectedDuration, err := time.ParseDuration("7h0m0s")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error parsing duration: %s\n", err)
+	}
+	assert.Equal(t, expectedDuration, *diff)
+}
+func TestCalculateFirstLastDayOfWeek(t *testing.T) {
+	today, err := time.Parse(time.RFC1123, "Wed, 03 May 2023 10:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
+	}
+	expWeekStart, err := time.Parse(time.RFC1123, "Sun, 30 Apr 2023 10:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the week start: %s\n", err)
+	}
+	expWeekEnd, err := time.Parse(time.RFC1123, "Sat, 06 May 2023 10:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the week end: %s\n", err)
+	}
+	firstDay, lastDay := CalculateFirstLastDayOfWeek(today)
+	assert.Equal(t, expWeekStart, firstDay)
+	assert.Equal(t, expWeekEnd, lastDay)
+}
+
+func TestCalculateTimesheet(t *testing.T) {
 	// Mock today as Thursday, 4 May 2023
 	datetime, err := time.Parse(time.RFC1123, "Thu, 04 May 2023 10:00:00 -03")
 	if err != nil {
@@ -155,13 +193,40 @@ func TestCalculateWholeWeek(t *testing.T) {
 	if err != nil {
 		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
 	}
-	diff, err := Calculate(false, false, true, datetime, cwd)
+	timesheet, err := CalculateTimesheet(datetime, cwd)
 	if err != nil {
-		log.Fatalf("[Error] T - Got the following error trying calculate week: %s\n", err)
+		log.Fatalf("[Error] T - Got the following error trying calculate timesheet: %s\n", err)
 	}
-	expectedDuration, err := time.ParseDuration("30h0m0s")
-	if err != nil {
-		log.Fatalf("[Error] T - Got the following error parsing duration: %s\n", err)
+	expectedWorkedDurationStrings := []string{
+		"0h0m0s",
+		"08h0m0s",
+		"08h0m0s",
+		"07h0m0s",
+		"07h0m0s",
+		"0h0m0s",
+		"0h0m0s",
 	}
-	assert.Equal(t, expectedDuration, *diff)
+	/*
+	expectedBreaksDurationStrings := []string{
+		"0h0m0s",
+		"0h0m0s",
+		"0h0m0s",
+		"01h0m0s",
+		"01h0m0s",
+		"0h0m0s",
+		"0h0m0s",
+	}*/
+
+	for i := 0; i < 7; i++ {
+		expectedWorkedDuration, err := time.ParseDuration(expectedWorkedDurationStrings[i])
+		if err != nil {
+			log.Fatalf("[Error] T - Got the following error parsing worked duration: %s\n", err)
+		}
+		//expectedBreakDuration, err := time.ParseDuration(expectedBreaksDurationStrings[i])
+		if err != nil {
+			log.Fatalf("[Error] T - Got the following error parsing break duration: %s\n", err)
+		}
+		assert.Equal(t, expectedWorkedDuration, timesheet.WorkedHours[i])
+		//assert.Equal(t, expectedBreakDuration, timesheet.Breaks[i])
+	}
 }
