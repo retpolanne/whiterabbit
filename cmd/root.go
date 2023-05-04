@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/retpolanne/whiterabbit/pkg"
+	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,31 @@ func callTrack(cmd *cobra.Command, args []string) {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func printTimesheet(timesheet *pkg.Timesheet) {
+	tbl := table.New("Weekdays", "S", "M", "T", "W", "T", "F", "S")
+	tbl.AddRow(
+		"Worked hours",
+		timesheet.WorkedHours[0],
+		timesheet.WorkedHours[1],
+		timesheet.WorkedHours[2],
+		timesheet.WorkedHours[3],
+		timesheet.WorkedHours[4],
+		timesheet.WorkedHours[5],
+		timesheet.WorkedHours[6],
+	)
+	tbl.AddRow(
+		"Breaks",
+		timesheet.Breaks[0],
+		timesheet.Breaks[1],
+		timesheet.Breaks[2],
+		timesheet.Breaks[3],
+		timesheet.Breaks[4],
+		timesheet.Breaks[5],
+		timesheet.Breaks[6],
+	)
+	tbl.Print()
 }
 
 func callCalc(cmd *cobra.Command, args []string) {
@@ -45,7 +71,10 @@ func callCalc(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("Got the following error trying to calculate worked hours: %v", err)
 		}
-		fmt.Printf("TODO timesheet output %v\n", *timesheet)
+		firstDay, lastDay := pkg.CalculateFirstLastDayOfWeek(time.Now())
+		fmt.Printf("week start: %v\n", firstDay)
+		fmt.Printf("week end: %v\n", lastDay)
+		printTimesheet(timesheet)
 	}
 }
 
@@ -121,7 +150,7 @@ func init() {
 	rootCmd.AddCommand(brbCmd)
 	rootCmd.AddCommand(backCmd)
 	rootCmd.AddCommand(goodnightCmd)
-	calculateCmd.Flags().BoolP("today", "t", true, "calculate worked hours today")
+	calculateCmd.Flags().BoolP("today", "t", false, "calculate worked hours today")
 	calculateCmd.Flags().BoolP("yesterday", "y", false, "calculate worked hours yesterday")
 	calculateCmd.Flags().BoolP("timesheet", "s", false, "calculate worked hours throughout the week in a timesheet form")
 	rootCmd.AddCommand(calculateCmd)
