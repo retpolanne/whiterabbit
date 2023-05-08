@@ -100,6 +100,12 @@ var lunchbreakCmd = &cobra.Command{
 	Run:   callTrack,
 }
 
+var lunchbackCmd = &cobra.Command{
+	Use:   "lunchback",
+	Short: "tracks when you are back from lunch",
+	Run:   callTrack,
+}
+
 var brbCmd = &cobra.Command{
 	Use:   "brb",
 	Short: "tracks when you go out for an appointment or for commuting",
@@ -147,6 +153,7 @@ func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	rootCmd.AddCommand(goodmorningCmd)
 	rootCmd.AddCommand(lunchbreakCmd)
+	rootCmd.AddCommand(lunchbackCmd)
 	rootCmd.AddCommand(brbCmd)
 	rootCmd.AddCommand(backCmd)
 	rootCmd.AddCommand(goodnightCmd)
