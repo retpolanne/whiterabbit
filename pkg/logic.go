@@ -57,7 +57,7 @@ func Track(command string, reason string) error {
 	return nil
 }
 
-func calculateDay(records [][]string, y int, m time.Month, d int) (diff, brbDiff *time.Duration, err error) {
+func calculateDay(records [][]string, y int, m time.Month, d int, now time.Time) (diff, brbDiff *time.Duration, err error) {
 	// TODO return total breaks
 	diffRet, err := time.ParseDuration("0h0m0s")
 	todayTime := &structuredTimes{}
@@ -87,7 +87,7 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff, brbDiff
 	}
 	lunchbreakDiff, _ := time.ParseDuration("0h0m0s")
 	totalBrbDiffs, _ := time.ParseDuration("0h0m0s")
-	if !todayTime.goodmorning.IsZero() && !todayTime.goodnight.IsZero() {
+	if !todayTime.goodmorning.IsZero() {
 		// TODO: parametrise lunchbreak
 		lunchbreakDefaultDiff, _ := time.ParseDuration("1h0m0s")
 		if !todayTime.lunchbreak.IsZero() {
@@ -95,7 +95,19 @@ func calculateDay(records [][]string, y int, m time.Month, d int) (diff, brbDiff
 			lunchbreakDiff = todayTime.lunchback.Sub(todayTime.lunchbreak) - lunchbreakDefaultDiff
 			fmt.Printf("lunchbreakDiff %v\n", lunchbreakDiff)
 		}
-		diffRet = todayTime.goodnight.Sub(todayTime.goodmorning) - lunchbreakDefaultDiff
+		deltaEnd := todayTime.goodnight
+		if deltaEnd.IsZero() {
+			fmt.Println("Still haven't finished your day huh! Calculating current worked hours")
+			deltaEnd = now
+			// TODO: hardcoded 1pm as "must-lunch" hour
+			todayBOD := time.Date(y, m, d, 0, 0, 0, 0, now.Location())
+			today1pm := todayBOD.Add(time.Hour * 13)
+			if now.Before(today1pm) {
+				fmt.Println("I suppose you still haven't had lunch today...")
+				lunchbreakDefaultDiff, _ = time.ParseDuration("0h0m0s")
+			}
+		}
+		diffRet = deltaEnd.Sub(todayTime.goodmorning) - lunchbreakDefaultDiff
 		var brbDiffs []time.Duration
 		for i := range todayTime.brb {
 			brbDiffs = append(brbDiffs, todayTime.back[i].Sub(todayTime.brb[i]))
@@ -126,12 +138,12 @@ func Calculate(today, yesterday bool, now time.Time, filepath string) (diff *tim
 
 	if today {
 		yt, mt, dt := now.Date()
-		diff, _, err = calculateDay(records, yt, mt, dt)
+		diff, _, err = calculateDay(records, yt, mt, dt, now)
 		return diff, err
 	}
 	if yesterday {
 		yt, mt, dt := now.AddDate(0, 0, -1).Date()
-		diff, _, err = calculateDay(records, yt, mt, dt)
+		diff, _, err = calculateDay(records, yt, mt, dt, now)
 		return diff, err
 	}
 	return nil, err
@@ -170,7 +182,7 @@ func CalculateTimesheet(now time.Time, filepath string) (*Timesheet, error) {
 	dayIndex := 0
 	for i := firstDay; i.After(lastDay) == false; i = i.AddDate(0, 0, 1) {
 		yt, mt, dt := i.Date()
-		diff, brbDiff, err := calculateDay(records, yt, mt, dt)
+		diff, brbDiff, err := calculateDay(records, yt, mt, dt, now)
 		if err != nil {
 			fmt.Printf("Got the following error calculating day: %s\n", err)
 			return nil, err

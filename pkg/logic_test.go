@@ -37,6 +37,7 @@ func setup() {
 		{"Thu, 04 May 2023 12:00:00 -03", "lunchbreak", ""},
 		{"Thu, 04 May 2023 14:00:00 -03", "lunchback", ""},
 		{"Thu, 04 May 2023 19:00:00 -03", "goodnight", ""},
+		{"Mon, 08 May 2023 10:00:00 -03", "goodmorning", ""},
 	}
 
 	err = csv.NewWriter(fd).WriteAll(record)
@@ -76,6 +77,27 @@ func TestCalculateTodayNoBreaks(t *testing.T) {
 		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
 	}
 	expectedDuration, err := time.ParseDuration("8h0m0s")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error parsing duration: %s\n", err)
+	}
+	assert.Equal(t, expectedDuration, *diff)
+}
+
+func TestCalculateTodayIncomplete(t *testing.T) {
+	// Mock today as monday, 8 May 2023
+	datetime, err := time.Parse(time.RFC1123, "Mon, 08 May 2023 12:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
+	}
+	diff, err := Calculate(true, false, datetime, cwd)
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying calculate day: %s\n", err)
+	}
+	expectedDuration, err := time.ParseDuration("2h0m0s")
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error parsing duration: %s\n", err)
 	}
