@@ -28,6 +28,8 @@ func setup() {
 		{"Mon, 01 May 2023 10:00:00 -03", "goodmorning", ""},
 		{"Mon, 01 May 2023 19:00:00 -03", "goodnight", ""},
 		{"Tue, 02 May 2023 10:00:00 -03", "goodmorning", ""},
+		{"Tue, 02 May 2023 12:00:00 -03", "lunchbreak", ""},
+		{"Tue, 02 May 2023 12:20:00 -03", "lunchback", ""},
 		{"Tue, 02 May 2023 19:00:00 -03", "goodnight", ""},
 		{"Wed, 03 May 2023 10:00:00 -03", "goodmorning", ""},
 		{"Wed, 03 May 2023 14:00:00 -03", "brb", "appointment"},
@@ -38,6 +40,11 @@ func setup() {
 		{"Thu, 04 May 2023 14:00:00 -03", "lunchback", ""},
 		{"Thu, 04 May 2023 19:00:00 -03", "goodnight", ""},
 		{"Mon, 08 May 2023 10:00:00 -03", "goodmorning", ""},
+		{"Mon, 15 May 2023 10:00:00 -03", "goodmorning", ""},
+		{"Mon, 15 May 2023 19:00:00 -03", "goodnight", ""},
+		{"Tue, 16 May 2023 10:00:00 -03", "goodmorning", ""},
+		{"Tue, 16 May 2023 19:00:00 -03", "goodnight", ""},
+		{"Wed, 17 May 2023 10:00:00 -03", "goodmorning", ""},
 	}
 
 	err = csv.NewWriter(fd).WriteAll(record)
@@ -64,7 +71,7 @@ func TestMain(m *testing.M) {
 
 func TestCalculateTodayNoBreaks(t *testing.T) {
 	// Mock today as tuesday, 2 May 2023
-	datetime, err := time.Parse(time.RFC1123, "Tue, 02 May 2023 10:00:00 -03")
+	datetime, err := time.Parse(time.RFC1123, "Mon, 01 May 2023 10:00:00 -03")
 	if err != nil {
 		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
 	}
@@ -222,7 +229,7 @@ func TestCalculateTimesheet(t *testing.T) {
 	expectedWorkedDurationStrings := []string{
 		"0h0m0s",
 		"08h0m0s",
-		"08h0m0s",
+		"08h40m0s",
 		"07h0m0s",
 		"07h0m0s",
 		"0h0m0s",
@@ -231,7 +238,7 @@ func TestCalculateTimesheet(t *testing.T) {
 	expectedBreaksDurationStrings := []string{
 		"0h0m0s",
 		"0h0m0s",
-		"0h0m0s",
+		"-40m0s",
 		"01h0m0s",
 		"01h0m0s",
 		"0h0m0s",
@@ -239,6 +246,47 @@ func TestCalculateTimesheet(t *testing.T) {
 	}
 
 	for i := 0; i < 7; i++ {
+		expectedWorkedDuration, err := time.ParseDuration(expectedWorkedDurationStrings[i])
+		if err != nil {
+			log.Fatalf("[Error] T - Got the following error parsing worked duration: %s\n", err)
+		}
+		expectedBreakDuration, err := time.ParseDuration(expectedBreaksDurationStrings[i])
+		if err != nil {
+			log.Fatalf("[Error] T - Got the following error parsing break duration: %s\n", err)
+		}
+		assert.Equal(t, expectedWorkedDuration, timesheet.WorkedHours[i])
+		assert.Equal(t, expectedBreakDuration, timesheet.Breaks[i])
+	}
+}
+
+func TestCalculateTimesheetIncomplete(t *testing.T) {
+	// Mock today as Wed, 17 May 2023
+	datetime, err := time.Parse(time.RFC1123, "Wed, 17 May 2023 14:00:00 -03")
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying to parse the mock date: %s\n", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("[Error] T - got the following error trying to get current working directory: %s\n", err)
+	}
+	timesheet, err := CalculateTimesheet(datetime, cwd)
+	if err != nil {
+		log.Fatalf("[Error] T - Got the following error trying calculate timesheet: %s\n", err)
+	}
+	expectedWorkedDurationStrings := []string{
+		"0h0m0s",
+		"08h0m0s",
+		"08h0m0s",
+		"03h0m0s",
+	}
+	expectedBreaksDurationStrings := []string{
+		"0h0m0s",
+		"0h0m0s",
+		"0h0m0s",
+		"0h0m0s",
+	}
+
+	for i := 0; i < 4; i++ {
 		expectedWorkedDuration, err := time.ParseDuration(expectedWorkedDurationStrings[i])
 		if err != nil {
 			log.Fatalf("[Error] T - Got the following error parsing worked duration: %s\n", err)
